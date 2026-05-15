@@ -1,4 +1,6 @@
 import express from "express";
+import bcrypt from "bcrypt";
+
 
 const app = express();
 app.use(express.json());
@@ -6,9 +8,9 @@ app.use(express.json());
 const users = [{
     userId: 1,
     username: "harkirat",
-    password: 123123,
+    password: "123123",
     collateral: {
-         availabe: 2000,
+         available: 2000,
          locked: 1000
     },
      positions: [
@@ -23,7 +25,7 @@ const users = [{
 }, {
     userId: 2,
     username: "raman",
-    password: 123123,
+    password: "123123",
     collateral: {
          availabe: 2000,
          locked: 2000
@@ -76,8 +78,35 @@ const fills = [{
     short: 1
 }];
 
-app.post("/signup", (req, res) => {})
+app.post("/signup", async(req, res) => {
+   const {username, password} = req.body
+   const existingUser = users.find(u => u.username === username);
+   if(existingUser) {
+    res.status(409).json("username already exists");
+   }
+   const hashedPassword = await bcrypt.hash(password, 10);
+
+   users.push({
+    userId : users.length+1,
+    username : username,
+    password : hashedPassword,
+    collateral : {available : 0, locked : 0},
+    positions : [],
+    orders : [] 
+});
+res.status(201).json("User created successfully");
+   
+});
+
+
+
+
 app.post("/signin", (req, res) => {})
+
+
+
+
+
 app.post("/onramp", (req, res) => {})
 app.post("/order", (req, res) => {})
 app.delete("/order", (req, res) => {})
