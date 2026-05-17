@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsImlhdCI6MTc3ODk5NTg0OX0.8uFIrPbjfofUckMtVaMt8dyMtEhPIVY6fNYY2pSAUE4
 
 
 const app = express();
@@ -80,6 +81,7 @@ const fills = [{
     short: 1
 }];
 
+//1
 app.post("/signup", async (req, res) => {
     const { username, password } = req.body
     const existingUser = users.find(u => u.username === username);
@@ -101,8 +103,7 @@ app.post("/signup", async (req, res) => {
 });
 
 
-
-
+//2
 app.post("/signin", async (req, res) => {
     //extract username and pass from req.body
     const { username, password } = req.body;
@@ -130,18 +131,57 @@ app.post("/signin", async (req, res) => {
 })
 
 
+//3
+app.post("/onramp", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    const {amount} = req.body;
+    
+    //verify token to get userId
+    if(!token) {
+        res.status(401).json("no token provided");
+        return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    //find user in users array using that userId
+    const existingUser = users.find(u => u.userId === decoded.userId);
+
+    if(!existingUser) {
+        res.status(404).json("User does not exist");
+        return;
+    }
+
+    //
+    existingUser.collateral.available += amount;
+    res.status(200).json("Funds are deposited successfully");
+ })
 
 
 
-app.post("/onramp", (req, res) => { })
-app.post("/order", (req, res) => { })
-app.delete("/order", (req, res) => { })
-app.get("/equity/available", (req, res) => { })
-app.get("/positions/open/:marketId", (req, res) => { });
-app.get("/positions/closed/:marketId", (req, res) => { });
-app.get("/orders/open/:marketId", (req, res) => { })
-app.get("/orders/:marketId", (req, res) => { })
-app.get("/fills", (req, res) => { });
+app.post("/order", (req, res) => {
+
+ })
+app.delete("/order", (req, res) => {
+
+ })
+app.get("/equity/available", (req, res) => {
+
+ })
+app.get("/positions/open/:marketId", (req, res) => { 
+
+});
+app.get("/positions/closed/:marketId", (req, res) => {
+
+ });
+app.get("/orders/open/:marketId", (req, res) => {
+
+ })
+app.get("/orders/:marketId", (req, res) => {
+
+ })
+app.get("/fills", (req, res) => {
+
+ });
 
 async function liqudationChecks(asset: string, price: number) {
 
@@ -151,3 +191,9 @@ async function liqudationChecks(asset: string, price: number) {
 async function onPriceUpdateFromBinance(asset: string, price: number) {
     liqudationChecks(asset, price);
 }
+
+
+app.listen(3000, () => {
+    console.log("server running on port 3000");
+});
+
