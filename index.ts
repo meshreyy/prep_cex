@@ -226,8 +226,22 @@ app.post("/order", (req, res) => {
     while (remainingQty > 0 && i < prices.length) {
         const level = oppositeSide[prices[i]!];
         if (!level) { i++; continue; }
+        if(!level.openOrders[0]) {i++; continue;}
         let availableQty = level.availableQty;
         if (availableQty < remainingQty) {
+            //partial fill case
+            fills.push({
+                
+                maker : level.openOrders[0].userId,
+                taker : decoded.userId,
+                market : market,
+                qty : availableQty,
+                price : price,
+                long : type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
+                short : type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
+
+            });
+
             remainingQty = remainingQty - availableQty;
             filledQty += level.availableQty;
             level.availableQty = 0;
@@ -237,11 +251,25 @@ app.post("/order", (req, res) => {
 
         }
         else if (availableQty >= remainingQty) {
+            //fully fill case
+            fills.push({
+                maker : level.openOrders[0]?.userId,
+                taker : decoded.userId,
+                market : market,
+                qty : remainingQty,
+                price : price,
+                long : type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
+                short : type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
+            })
+
+
             level.availableQty -= remainingQty;
             filledQty += remainingQty;
             remainingQty = 0;
+            i++;
         }
 
+        
     }
     //updating the order status 
 
@@ -255,9 +283,6 @@ app.post("/order", (req, res) => {
         newOrder.status = "open"
     }
 
-    res.status(200).json({ order: newOrder })
-
-
     //add unmatched order to the orderbook
     const ownSide = type === "LONG" ? orderbook.bids : orderbook.asks;
 
@@ -267,11 +292,11 @@ app.post("/order", (req, res) => {
             //level exists, add to it
             ownSide[price].availableQty += remainingQty;
             ownSide[price].openOrders.push({
-                userId : decoded.userId,
-                qty : qty,
-                filledQty : filledQty,
-                orderId : newOrder.orderId,
-                createdAt : new Date()
+                userId: decoded.userId,
+                qty: qty,
+                filledQty: filledQty,
+                orderId: newOrder.orderId,
+                createdAt: new Date()
             })
         }
         else {
@@ -288,7 +313,9 @@ app.post("/order", (req, res) => {
                 }]
             }
         }
+        
     }
+    res.status(200).json({ order: newOrder })
 })
 
 
