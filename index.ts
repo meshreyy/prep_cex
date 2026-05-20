@@ -228,6 +228,7 @@ app.post("/order", (req, res) => {
         if (!level) { i++; continue; }
         if(!level.openOrders[0]) {i++; continue;}
         let availableQty = level.availableQty;
+        const filledAmount = Math.min(availableQty, remainingQty); //this will help in the positions (to update it)
         if (availableQty < remainingQty) {
             //partial fill case
             fills.push({
@@ -268,7 +269,23 @@ app.post("/order", (req, res) => {
             remainingQty = 0;
             i++;
         }
-
+         //position
+    
+    const existingPosition = existingUser.positions.find(p => p.market === market && p.type === type);
+    if(existingPosition) {
+        //increase the current position
+        // you just update the current one with fill
+        existingPosition.qty += filledAmount;
+    }
+    else {
+        //create a new position
+        existingUser.positions.push({
+            market, type, qty, margin,
+            liquidationPrice : type === "LONG" ? price * 0.8 : price * 1.2,
+            averagePrice : price,
+            pnL : 0
+        })
+    }
         
     }
     //updating the order status 
@@ -316,7 +333,11 @@ app.post("/order", (req, res) => {
         
     }
     res.status(200).json({ order: newOrder })
+    
+
+
 })
+
 
 
 
