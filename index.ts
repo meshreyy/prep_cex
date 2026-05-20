@@ -226,20 +226,20 @@ app.post("/order", (req, res) => {
     while (remainingQty > 0 && i < prices.length) {
         const level = oppositeSide[prices[i]!];
         if (!level) { i++; continue; }
-        if(!level.openOrders[0]) {i++; continue;}
+        if (!level.openOrders[0]) { i++; continue; }
         let availableQty = level.availableQty;
         const filledAmount = Math.min(availableQty, remainingQty); //this will help in the positions (to update it)
         if (availableQty < remainingQty) {
             //partial fill case
             fills.push({
-                
-                maker : level.openOrders[0].userId,
-                taker : decoded.userId,
-                market : market,
-                qty : availableQty,
-                price : price,
-                long : type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
-                short : type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
+
+                maker: level.openOrders[0].userId,
+                taker: decoded.userId,
+                market: market,
+                qty: availableQty,
+                price: price,
+                long: type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
+                short: type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
 
             });
 
@@ -254,13 +254,13 @@ app.post("/order", (req, res) => {
         else if (availableQty >= remainingQty) {
             //fully fill case
             fills.push({
-                maker : level.openOrders[0]?.userId,
-                taker : decoded.userId,
-                market : market,
-                qty : remainingQty,
-                price : price,
-                long : type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
-                short : type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
+                maker: level.openOrders[0]?.userId,
+                taker: decoded.userId,
+                market: market,
+                qty: remainingQty,
+                price: price,
+                long: type === "LONG" ? decoded.userId : level.openOrders[0]?.userId,
+                short: type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
             })
 
 
@@ -269,24 +269,24 @@ app.post("/order", (req, res) => {
             remainingQty = 0;
             i++;
         }
-         //position
-    
-    const existingPosition = existingUser.positions.find(p => p.market === market && p.type === type);
-    if(existingPosition) {
-        //increase the current position
-        // you just update the current one with fill
-        existingPosition.qty += filledAmount;
-    }
-    else {
-        //create a new position
-        existingUser.positions.push({
-            market, type, qty, margin,
-            liquidationPrice : type === "LONG" ? price * 0.8 : price * 1.2,
-            averagePrice : price,
-            pnL : 0
-        })
-    }
-        
+        //position
+
+        const existingPosition = existingUser.positions.find(p => p.market === market && p.type === type);
+        if (existingPosition) {
+            //increase the current position
+            // you just update the current one with fill
+            existingPosition.qty += filledAmount;
+        }
+        else {
+            //create a new position
+            existingUser.positions.push({
+                market, type, qty, margin,
+                liquidationPrice: type === "LONG" ? price * 0.8 : price * 1.2,
+                averagePrice: price,
+                pnL: 0
+            })
+        }
+
     }
     //updating the order status 
 
@@ -330,23 +330,140 @@ app.post("/order", (req, res) => {
                 }]
             }
         }
-        
+
     }
     res.status(200).json({ order: newOrder })
+
+
+
+})
+
+
+
+app.delete("/order/:orderId", (req, res) => {
+
+    //order -> partially_filled -> the amt that is filled, can't be cancelled, 
+    // the qty left to fill -> 
+
+    //get the token
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+        res.status(409).json("token not found");
+        return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    //find the user
+    const existingUser = users.find(u => u.userId === decoded.userId);
+    if(!existingUser) {
+        res.status(409).json("User not found");
+        return;
+    }
+
+    //find order by orderId
+    const orderId = Number(req.params.orderId);
+    const order = existingUser.orders.find(o => o.orderId === orderId);
+
+    //checking order status 
+    const orderStatus = order?.status;
+
+    if(orderStatus === "open") {
+        //remove it from the orderbook
+        //move the locked qty back to available qty
+        //update order status to "cancelled"
+
+        if(!order) {
+            res.status(404).json("order not found");
+            return;
+        }
+        
+        const orderbook = orderbooks[order.market];
+        if(!orderbook) {
+            res.status(404).json("orderbook not found");
+            return; //blunder 
+        }
+        const side = order.type === "LONG" ? orderbook.bids : orderbook.asks;
+
+        const level = side[order.price];
+        //eg: all orders sitting at price $90 in the bids
+
+        if(level) {
+            level.openOrders = level.openOrders.filter(o => o.orderId !== order.orderId);
+            //removes only the order from the waiting list
+
+            level.availableQty -= order.qty;
+            //the order is removed, the availableQty at that price goes down
+        }
+
+        
+        //moving the locked amount and adding it back to the original available balance
+        existingUser.collateral.available += order.margin;
+        existingUser.collateral.locked -= order.margin;
+
+        order.status = "cancelled";
+        
+        
+    }
+
+
+    else if(orderStatus === "partially_filled") {
+        //get the amount -> filledQty -> cn't delete this 
+        //               -> remainingQty -> delete this
+        if(!order) {
+            res.status(404).json("order not found");
+            return;
+        }
+
+        const orderbook = orderbooks[order.market];
+        if(!orderbook) {
+            res.status(404).json("orderbook not found");
+            return;
+        }        
+
+        const side = order.type === "LONG" ? orderbook.bids : orderbook.asks;
+
+        const level = side[order.price];
+        //the price level
+        
+        const openOrderEntry = level?.openOrders.find(o => o.orderId === order.orderId);
+        if(!openOrderEntry) {
+            res.status(404).json("order not found in the orderbook");
+            return;
+        }
+        
+
+        //calculate remainingQty
+        const remainingQty = openOrderEntry?.qty - openOrderEntry?.filledQty;
+        const marginPerUnit = order.margin / order.qty;
+        //margin for each order
+        const marginToBeRefund = marginPerUnit * remainingQty;
+
+        existingUser.collateral.available += marginToBeRefund;
+        existingUser.collateral.locked -= marginToBeRefund;
+
+        
+        if(level) {
+            level.openOrders = level?.openOrders.filter(o => o.orderId !== order.orderId);
+            level.availableQty -= remainingQty;
+        }
+
+        order.status = "cancelled";
+     
+    }
+    else {
+        //filled -> it is already removed from the orderbook
+        res.status(409).json("Order already filled, cannot cancel");
+        return;
+
+    }
+
+    res.status(200).json("The order is finally cancelled");
+    return;
+
     
 
 
 })
 
-
-
-
-
-
-
-app.delete("/order", (req, res) => {
-
-})
 app.get("/equity/available", (req, res) => {
 
 })
