@@ -230,7 +230,7 @@ app.post("/order", (req, res) => {
         let availableQty = level.availableQty;
         const filledAmount = Math.min(availableQty, remainingQty); //this will help in the positions (to update it)
         if (availableQty < remainingQty) {
-            //partial fill case
+            //filled case
             fills.push({
 
                 maker: level.openOrders[0].userId,
@@ -243,6 +243,14 @@ app.post("/order", (req, res) => {
 
             });
 
+            //update maker's order
+            const makerUser = users.find(u => u.userId === level.openOrders[0]?.userId);
+            const makerOrder = makerUser?.orders.find(o => o.orderId === level.openOrders[0]?.orderId);
+            if(makerOrder) {
+                makerOrder.status = "filled"; 
+            }
+
+
             remainingQty = remainingQty - availableQty;
             filledQty += level.availableQty;
             level.availableQty = 0;
@@ -252,7 +260,7 @@ app.post("/order", (req, res) => {
 
         }
         else if (availableQty >= remainingQty) {
-            //fully fill case
+            //partially filled case
             fills.push({
                 maker: level.openOrders[0]?.userId,
                 taker: decoded.userId,
@@ -263,12 +271,25 @@ app.post("/order", (req, res) => {
                 short: type === "SHORT" ? decoded.userId : level.openOrders[0]?.userId
             })
 
+            //update maker's order
+            const makerUser = users.find(u => u.userId === level.openOrders[0]?.userId);
+            const makerOrder = makerUser?.orders.find(o => o.orderId === level.openOrders[0]?.orderId);
+            if(makerOrder) {
+                makerOrder.status = "partially_filled"; 
+            }
+
 
             level.availableQty -= remainingQty;
             filledQty += remainingQty;
             remainingQty = 0;
             i++;
         }
+        
+
+        
+
+        
+
         //position
 
         const existingPosition = existingUser.positions.find(p => p.market === market && p.type === type);
@@ -276,6 +297,7 @@ app.post("/order", (req, res) => {
             //increase the current position
             // you just update the current one with fill
             existingPosition.qty += filledAmount;
+        
         }
         else {
             //create a new position
@@ -302,7 +324,7 @@ app.post("/order", (req, res) => {
 
     //add unmatched order to the orderbook
     const ownSide = type === "LONG" ? orderbook.bids : orderbook.asks;
-
+    
     //check if a level already exists at that price on that same side
     if (remainingQty > 0) {
         if (ownSide[price]) {
@@ -332,6 +354,10 @@ app.post("/order", (req, res) => {
         }
 
     }
+
+    console.log(JSON.stringify(users.map(u => ({ username: u.username, orders: u.orders })), null, 2));
+
+
     res.status(200).json({ order: newOrder })
 
 
@@ -352,6 +378,7 @@ app.delete("/order/:orderId", (req, res) => {
         return;
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+
     //find the user
     const existingUser = users.find(u => u.userId === decoded.userId);
     if(!existingUser) {
@@ -455,6 +482,9 @@ app.delete("/order/:orderId", (req, res) => {
         return;
 
     }
+
+
+
 
     res.status(200).json("The order is finally cancelled");
     return;
