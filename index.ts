@@ -158,7 +158,7 @@ app.post("/onramp", (req, res) => {
 })
 
 
-
+//4
 app.post("/order", (req, res) => {
 
     const token = req.headers.authorization?.split(" ")[1];
@@ -365,7 +365,7 @@ app.post("/order", (req, res) => {
 })
 
 
-
+//5
 app.delete("/order/:orderId", (req, res) => {
 
     //order -> partially_filled -> the amt that is filled, can't be cancelled, 
@@ -494,24 +494,67 @@ app.delete("/order/:orderId", (req, res) => {
 
 })
 
+//6
 app.get("/equity/available", (req, res) => {
 
+    //verify JWT -> get userId
+    const token = req.headers.authorization?.split(" ")[1];
+    if(!token) {
+        res.status(401).json("no token provided");
+        return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    //find the user
+    const existingUser = users.find(u => u.userId === decoded.userId);
+
+    //return their available collateral
+    res.json({ available : existingUser?.collateral.available});
+
 })
+
+
+//7
 app.get("/positions/open/:marketId", (req, res) => {
 
+    //verify jwt
+    const token = req.headers.authorization?.split(" ")[1];
+    if(!token) {
+        res.status(401).json("no token provided");
+        return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    //find the user
+    const existingUser = users.find(u => u.userId === decoded.userId);
+
+    //get maketId from the URL 
+    const marketId = req.params.marketId;
+
+    //filter user's position
+    const existingPos = existingUser?.positions.filter(p => p.market === marketId);
+    res.json({ positions : existingPos});
+
 });
+
+
+
 app.get("/positions/closed/:marketId", (req, res) => {
 
 });
+
 app.get("/orders/open/:marketId", (req, res) => {
 
 })
+
 app.get("/orders/:marketId", (req, res) => {
 
 })
+
 app.get("/fills", (req, res) => {
 
 });
+
 
 async function liqudationChecks(asset: string, price: number) {
 
