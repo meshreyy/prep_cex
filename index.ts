@@ -543,11 +543,49 @@ app.get("/positions/closed/:marketId", (req, res) => {
 
 });
 
+
+//9
 app.get("/orders/open/:marketId", (req, res) => {
+
+    const token = req.headers.authorization?.split(" ")[1];
+    if(!token) {
+        res.status(400).json("token not provided");
+        return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    //find user
+    const existingUser = users.find(u => u.userId === decoded.userId);
+
+    const market = req.params.marketId;
+
+    const order = existingUser?.orders.filter(m => m.market === market && m.status === "open")
+    res.json({ orders : order});
+    //you want all open orders, not just first one
 
 })
 
+
+//8
 app.get("/orders/:marketId", (req, res) => {
+
+    //return orders
+    const token = req.headers.authorization?.split(" ")[1];
+    if(!token) {
+        res.status(400).json("no token provided");
+        return;
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    //find user
+
+    const marketId = req.params.marketId;
+    const existingUser = users.find(u => u.userId === decoded.userId);
+
+    //filter their orders
+    const order = existingUser?.orders.filter(m => m.market === marketId);
+    res.json({ orders : order});
 
 })
 
