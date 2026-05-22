@@ -589,8 +589,22 @@ app.get("/orders/:marketId", (req, res) => {
 
 })
 
+
+//10
 app.get("/fills", (req, res) => {
 
+    const token = req.headers.authorization?.split(" ")[1];
+    if(!token) {
+        res.status(400).json("no token provided");
+        return;
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {userId : number};
+
+    const existingUser = users.find(u => u.userId === decoded.userId);
+    
+    const filled = fills.filter(f => f.maker === decoded.userId || f.taker === decoded.userId);
+    res.json({ fills : filled});
 });
 
 
