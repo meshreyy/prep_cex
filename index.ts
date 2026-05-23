@@ -608,9 +608,34 @@ app.get("/fills", (req, res) => {
 });
 
 
+//Liquidaion Engine
 async function liqudationChecks(asset: string, price: number) {
 
+    for(const user of users) {
+        for(const position of user.positions) {
+            if(position.type === "LONG" && price < position.liquidationPrice) {
+                user.positions = user.positions.filter(p => p!== position);
+                user.collateral.locked -= position.margin; 
+                
+
+            }
+            else if(position.type === "SHORT" && price > position.liquidationPrice) {
+                //SHORT
+                user.positions = user.positions.filter(p => p!== position);
+                user.collateral.locked -= position.margin;
+
+            }
+        }
+    }
+    if(orderbooks[asset]) {
+        orderbooks[asset].lastTradedPrice = price;
+        orderbooks[asset].indexPrice = price;
+    }
+
 }
+
+
+
 
 
 async function onPriceUpdateFromBinance(asset: string, price: number) {
