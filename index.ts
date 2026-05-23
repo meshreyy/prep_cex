@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import type { User, Order, Position, Fill } from "../types";
+import WebSocket from "ws";
 
 //eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsImlhdCI6MTc3ODk5NTg0OX0.8uFIrPbjfofUckMtVaMt8dyMtEhPIVY6fNYY2pSAUE4
 
@@ -657,3 +658,11 @@ app.listen(3000, () => {
     console.log("server running on port 3000");
 });
 
+const wsBinance = new
+WebSocket("wss://stream.binance.com:9443/ws/solusdt@trade");
+
+wsBinance.on("message", (data) =>  {
+    const trade = JSON.parse(data.toString());
+    const price = parseFloat(trade.p);
+    onPriceUpdateFromBinance("SOL",price);
+});
