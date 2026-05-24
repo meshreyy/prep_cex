@@ -47,8 +47,6 @@ Perpetual futures exchange: React frontend, Express backend, in-memory matching 
 5. **DB poller** reads events and saves them to **Postgres**.
 6. On engine restart, balances are **loaded from Postgres** into memory so collateral is not lost.
 
-**Streams in use**
-
 | Stream | Direction | What moves |
 |--------|-----------|------------|
 | `stream:commands` | Backend → Engine | Place order, cancel, etc. |
@@ -57,11 +55,11 @@ Perpetual futures exchange: React frontend, Express backend, in-memory matching 
 
 ## Tech stack
 
-- **Frontend** — React  
-- **Backend** — Express, JWT + bcrypt  
-- **Engine** — Bun, in-memory orderbook, Binance WS for mark price  
-- **DB** — Postgres (Neon), Prisma (`shared/db`)  
-- **Bus** — Redis Streams  
+- **Frontend** — React
+- **Backend** — Express, JWT + bcrypt
+- **Engine** — Bun, in-memory orderbook, Binance WS for mark price
+- **DB** — Postgres (Neon), Prisma (`shared/db`)
+- **Bus** — Redis Streams
 
 ## Why Streams, not Pub/Sub?
 
@@ -82,3 +80,49 @@ backend/      # REST API
 db-poller/    # Events → Postgres
 frontend/     # React UI
 ```
+
+## Environment variables
+
+**Engine** (`engine/.env`):
+
+| Variable | Description |
+|----------|-------------|
+| `REDIS_URL` | Redis connection URL |
+| `INCOMING_QUEUE` | Command stream key (e.g. `stream:commands`) |
+| `RESPONSE_QUEUE` | Stream for command responses |
+| `EVENTS_QUEUE` | Stream for persistence events |
+
+**Database** (`shared/db/.env`):
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Neon Postgres connection string |
+
+## Development
+
+Prerequisites: Bun, Redis, Neon database URL.
+
+```bash
+# Install dependencies (from repo root)
+bun install
+
+# Generate Prisma client & migrate
+cd shared/db
+bun run db:generate
+bun run db:migrate
+
+# Run engine
+cd ../../engine
+bun run dev
+```
+
+## Progress
+
+- [x] `shared/db` — Prisma + Neon connected
+- [ ] `engine` — types, store, config, hydrate, Binance WS, Redis consumer (matching logic in progress)
+- [ ] `backend` — not started
+- [ ] `db-poller` — skipped for v1; add when event persistence is required
+
+## License
+
+Private / educational project — add a license if you open-source it.
