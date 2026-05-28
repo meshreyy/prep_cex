@@ -621,6 +621,7 @@ app.get("/fills", (req, res) => {
 
 //Liquidaion Engine
 async function liqudationChecks(asset: string, price: number) {
+    
 
     for(const user of users) {
         for(const position of user.positions) {

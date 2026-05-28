@@ -1,8 +1,9 @@
 {
-  "name": "perps-v1-boilerplate",
+  "name": "perp-exchange",
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "workspaces": ["shared/*"],
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "latest",
