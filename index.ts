@@ -100,7 +100,7 @@ app.post("/signup", async (req, res) => {
         positions: [],
         orders: []
     });
-    res.status(201).json("User created successfully");
+    res.status(201).json("user created successfully");
 
 });
 
