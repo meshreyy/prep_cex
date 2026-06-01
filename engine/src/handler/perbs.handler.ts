@@ -34,6 +34,7 @@ export const onramp = async (payload: Record<string, unknown>) => {
 //creates an order
 //matches against orderbook
 export const openPosition = async (payload: Record<string, unknown>) => {
+    //creates the trade
     const userId = payload.userId as string;
     const market = payload.market as string;
     const side = payload.side as OrderSide; //(not string bcz it has to be between these and can't be any string)
@@ -258,4 +259,92 @@ export const matchOrder = (
     return { filledQty, fills, takerPositions, makerPositions };
 
     
+}
+
+
+export const getEquity = async(payload : Record<string,unknown>) => {
+    
+    //return user's available and locked balance from BALANCES
+
+    //get the userId from the payload 
+    //find their balance in BALANCES
+    //return available and locked
+
+   
+
+    const userId  = payload.userId as string;
+    const userBalance = BALANCES.get(userId);
+    if(!userBalance) return {available : 0, locked : 0};
+    const userAvl = userBalance.available;
+    const userLoc = userBalance.locked;
+
+    return {available : userAvl, locked : userLoc};
+
+}
+
+export const getOpenPosition = async(payload : Record<string, unknown>) => {
+
+    //reads existing pos.
+
+    //return all positions for a user where :
+    //positionStatus === "open"
+
+    const userId = payload.userId as string;
+    const userPos = POSITIONS.get(userId);
+
+    if(!userPos) return {existingPos : "No open positions"};
+    const existingPos = userPos.filter(p => p.positionStatus === "open");
+
+    return existingPos;
+}
+
+export const cancelPosition = async(payload : Record<string,unknown>) => {
+
+    //find order by orderId
+    //check if it can be cancelled
+    //remove it from the orderbook
+    //unlock margin (locked --> available)
+    //update order status : cancelled
+
+    const orderId = payload.orderId as string;
+    const userId = payload.userId as string;
+
+    const userOrders = ORDERS.get(userId);
+    if(!userOrders) return {error : "No orders"};
+    const order = userOrders.find(o => o.orderId === orderId);
+    if(!order) return {error : "Order not found"};
+
+    if(order.status === "filled" || order.status === "partially_filled") {
+        return {error : "Orders cannot be cancelled"};
+    }
+
+    //remove it from the orderbook
+    
+    const book = ORDERBOOKS.get(order.market);
+    if(!book) return {error : "Market not found"};
+    const side = order.side === "buy" ? book.bids : book.asks;
+
+    //unlock margin (locked --> available)
+    const userBalance = BALANCES.get(userId);
+    if(userBalance) {
+        userBalance.available += order.margin;
+        userBalance.locked -= order.margin;
+    }
+    //set the status to cancelled
+    order.status = "cancelled";
+
+    //emit ORDER_CANCELLED event
+    await emitEvent("ORDER_CANCELLED" , {
+        orderId : order.orderId,
+        side, 
+        qty: order.qty, 
+        margin: order.margin, 
+        orderType: order.orderType, 
+        price: order.price, 
+        status: order.status, 
+        market: order.market, userId
+    })
+
+    return {orderId, status : "cancelled"}
+
 }
