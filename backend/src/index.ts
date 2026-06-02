@@ -10,6 +10,7 @@ import express from "express";
 import "dotenv/config";
 import { env } from "./utils/config";
 import router from "./route/auth.route";
+import perpsRouter from "./route/perps.route";
 import { connectRedis, redisClient } from "./utils/redis";
 import { pendingResponses } from "./store/pending_response";
 
@@ -18,6 +19,8 @@ const app = express();
 app.use(express.json());
 
 app.use("/api/auth", router);
+app.use("/api/perps", perpsRouter);
+
 
 
 async function main() {
@@ -27,6 +30,25 @@ async function main() {
         console.log(`Backend running on the port ${env.port}`);
     })
 
+    //CREATE CONSUMER GROUP
+    try {
+        await redisClient.xGroupCreate(
+            "stream:responses",
+            "backend",
+            "$",
+            {MKSTREAM : true}
+        )
+
+    } catch (error: any) {
+    if (error.message.includes("BUSYGROUP")) {
+        console.log("consumer group already exists");
+    }
+    else {
+        throw error; //re-throw if there is a different error
+    }
+
+}
+
     while (true) {
     const messages = await redisClient.xReadGroup(
         "backend",  //consumer grp
@@ -34,6 +56,8 @@ async function main() {
         [{ key: env.responseQueue, id: ">" }], // only read new msgs
         { BLOCK: 2000 }
         //waits for 2 sec for new messages
+
+        
 
 
     );
