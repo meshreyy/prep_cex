@@ -87,6 +87,21 @@ async function request<T>(
   return data as T;
 }
 
+export function normalizeBalance(data: unknown): Balance {
+  if (!data || typeof data !== "object") {
+    return { available: 0, locked: 0 };
+  }
+  const d = data as Record<string, unknown>;
+  const nested =
+    d.balance && typeof d.balance === "object"
+      ? (d.balance as Record<string, unknown>)
+      : d;
+  return {
+    available: Number(nested.available) || 0,
+    locked: Number(nested.locked) || 0,
+  };
+}
+
 export function parsePositions(
   data: Position[] | { existingPos?: string },
 ): Position[] {
@@ -109,10 +124,11 @@ export const api = {
     });
   },
 
-  getBalance(userId: string) {
-    return request<Balance>(
+  async getBalance(userId: string) {
+    const data = await request<unknown>(
       `/api/perps/balance?userId=${encodeURIComponent(userId)}`,
     );
+    return normalizeBalance(data);
   },
 
   getPositions(userId: string) {
@@ -121,11 +137,12 @@ export const api = {
     );
   },
 
-  onramp(userId: string, amount: number) {
-    return request<Balance>("/api/perps/onramp", {
+  async onramp(userId: string, amount: number) {
+    const data = await request<unknown>("/api/perps/onramp", {
       method: "POST",
       body: JSON.stringify({ userId, amount }),
     });
+    return normalizeBalance(data);
   },
 
   placeOrder(body: {

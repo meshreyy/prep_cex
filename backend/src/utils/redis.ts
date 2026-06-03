@@ -5,7 +5,13 @@
 import {createClient} from "redis";
 import { env } from "./config";
 
-export const redisClient = createClient({url : env.redisUrl});
+export const redisClient = createClient({
+    url: env.redisUrl,
+    socket: {
+        tls: true,
+        rejectUnauthorized: false
+    }
+});
 
 redisClient.on("error", (err) => console.log("Redis Error", err));
 

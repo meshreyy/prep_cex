@@ -5,13 +5,19 @@
 import { createClient } from "redis";
 import { env } from "./utils/config";
 import { hydrateEngine } from "./bootstrap/hydrate";
-import { onramp, openPosition, cancelPosition, getEquity, getOpenPosition } from "./handler/perbs.handler.js";import { redisClient } from "../../backend/src/utils/redis.js";
+import { onramp, openPosition, cancelPosition, getEquity, getOpenPosition } from "./handler/perbs.handler.js";
 
 
 
-export const brokerClient = createClient({ url: env.redisUrl });
-//listens for commands from backend(XREADGROUP)
-export const responseClient = createClient({ url: env.redisUrl });
+export const brokerClient = createClient({ 
+    url: env.redisUrl,
+    socket: { tls: true, rejectUnauthorized: false }
+});
+
+export const responseClient = createClient({ 
+    url: env.redisUrl,
+    socket: { tls: true, rejectUnauthorized: false }
+});
 
 
 await Promise.all([brokerClient.connect(), responseClient.connect()]);
@@ -77,13 +83,11 @@ while (true) {
                     break;
 
                 case "get_equity":
-                    //user checking their balance
-                    result = getEquity(parsedPayload);
+                    result = await getEquity(parsedPayload);
                     break;
 
                 case "get_open_positions":
-                    //user viewing their open positions
-                    result = getOpenPosition(parsedPayload);
+                    result = await getOpenPosition(parsedPayload);
                     break;
 
                 default:

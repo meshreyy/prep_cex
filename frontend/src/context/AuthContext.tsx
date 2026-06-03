@@ -38,37 +38,42 @@ function readStoredAuth(): StoredAuth | null {
   }
 }
 
+function writeStoredAuth(next: StoredAuth | null) {
+  if (next) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<StoredAuth | null>(readStoredAuth);
 
-  const persist = useCallback((next: StoredAuth | null) => {
-    if (next) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-    setStored(next);
+  const login = useCallback((token: string, user: AuthUser) => {
+    setStored((prev) => {
+      const next: StoredAuth = {
+        token,
+        user,
+        balance: prev?.user.id === user.id ? prev.balance : undefined,
+      };
+      writeStoredAuth(next);
+      return next;
+    });
   }, []);
 
-  const login = useCallback(
-    (token: string, user: AuthUser) => {
-      const prev = readStoredAuth();
-      persist({ token, user, balance: prev?.balance });
-    },
-    [persist],
-  );
-
   const logout = useCallback(() => {
-    persist(null);
-  }, [persist]);
+    writeStoredAuth(null);
+    setStored(null);
+  }, []);
 
-  const setBalance = useCallback(
-    (balance: Balance) => {
-      if (!stored) return;
-      persist({ ...stored, balance });
-    },
-    [persist, stored],
-  );
+  const setBalance = useCallback((balance: Balance) => {
+    setStored((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, balance };
+      writeStoredAuth(next);
+      return next;
+    });
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({

@@ -60,10 +60,25 @@ export function TradingPage() {
   }, [user]);
 
   useEffect(() => {
-    refreshAccount();
-    const id = setInterval(refreshAccount, 15_000);
-    return () => clearInterval(id);
-  }, [refreshAccount]);
+    if (!user?.id) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const bal = await api.getBalance(user.id);
+        if (!cancelled) setBalance(bal);
+        const pos = parsePositions(await api.getPositions(user.id));
+        if (!cancelled) setPositions(pos);
+      } catch {
+        /* engine may be offline */
+      }
+    };
+    run();
+    const id = window.setInterval(run, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [user?.id, setBalance]);
 
   useEffect(() => {
     setPrice("");

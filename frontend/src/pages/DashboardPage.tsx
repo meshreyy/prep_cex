@@ -29,8 +29,18 @@ export function DashboardPage() {
   }, [user, setBalance]);
 
   useEffect(() => {
-    refreshBalance();
-  }, [refreshBalance]);
+    if (!user?.id) return;
+    let cancelled = false;
+    api
+      .getBalance(user.id)
+      .then((bal) => {
+        if (!cancelled) setBalance(bal);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, setBalance]);
 
   async function handleOnramp(e: FormEvent) {
     e.preventDefault();
