@@ -21,7 +21,7 @@ export async function hydrateEngine() {
         
     }
 
-    console.log('Loaded ${balances.length} balances');
+    console.log(`Loaded ${balances.length} balances`);
 
 }
 
