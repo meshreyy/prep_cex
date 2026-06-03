@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "workspaces": ["shared/*", "backend"],
+  "workspaces": ["shared/*", "backend", "engine"],
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "latest",

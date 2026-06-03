@@ -13,10 +13,15 @@ import router from "./route/auth.route";
 import perpsRouter from "./route/perps.route";
 import { connectRedis, redisClient } from "./utils/redis";
 import { pendingResponses } from "./store/pending_response";
-
+import { corsMiddleware } from "./middleware/cors";
 
 const app = express();
+app.use(corsMiddleware);
 app.use(express.json());
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.use("/api/auth", router);
 app.use("/api/perps", perpsRouter);

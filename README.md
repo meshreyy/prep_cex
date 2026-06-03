@@ -111,10 +111,43 @@ cd shared/db
 bun run db:generate
 bun run db:migrate
 
-# Run engine
-cd ../../engine
+# Backend API (port 3000)
+cd ../../backend
+bun run dev
+
+# Engine
+cd ../engine
+bun run dev
+
+# Frontend (port 5173, proxies /api -> backend)
+cd ../frontend
+bun install
 bun run dev
 ```
+
+### Frontend routes
+
+| Path | Description |
+|------|-------------|
+| `/` | Landing |
+| `/auth`, `/login`, `/signup` | Auth |
+| `/dashboard` | Portfolio (login required) |
+| `/trade` | Trading terminal (login required) |
+
+See `frontend/README.md` and **`DEPLOY.md`** for Vercel + backend deployment.
+
+### Perps API (via backend → engine)
+
+| Method | Path |
+|--------|------|
+| GET | `/api/perps/balance?userId=` |
+| GET | `/api/perps/positions?userId=` |
+| POST | `/api/perps/order` (body: `qty`, `orderType`, `price`, …) |
+| POST | `/api/perps/onramp` |
+| POST | `/api/perps/cancel` |
+| GET | `/api/health` |
+
+Set `CORS_ORIGIN` on the backend to your Vercel frontend URL.
 
 ## Progress
 
