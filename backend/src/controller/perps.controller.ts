@@ -12,6 +12,9 @@ function readUserId(req: Request): string | null {
 
 export const order = async (req: Request, res: Response) => {
   try {
+
+    console.log("ORDER HIT");
+
     const { userId, market, side, price, orderType } = req.body;
     const qty = Number(req.body.qty ?? req.body.quantity);
 
@@ -59,6 +62,9 @@ export const onramp = async (req: Request, res: Response) => {
 
 export const getBalance = async (req: Request, res: Response) => {
   try {
+
+    console.log("BALANCE HIT")
+
     const userId = readUserId(req);
     if (!userId) {
       res.status(400).json({ error: "userId required" });
