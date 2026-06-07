@@ -6,6 +6,7 @@ import { createClient } from "redis";
 import { env } from "./utils/config";
 import { hydrateEngine } from "./bootstrap/hydrate";
 import { onramp, openPosition, cancelPosition, getEquity, getOpenPosition } from "./handler/perbs.handler.js";
+import { recoverConsumerPel } from "./utils/streamPel";
 
 
 
@@ -37,6 +38,7 @@ try {
         { MKSTREAM: true } //create stream if doesn't exist
     )
 }
+
 catch (error: any) {
     if (error.message.includes("BUSYGROUP")) {
         console.log("consumer group already exists");
@@ -46,62 +48,80 @@ catch (error: any) {
     }
 }
 
+const STREAM_KEY = "stream:commands";
+const GROUP_NAME = "engine";
+const CONSUMER_NAME = "engine-worker-1";
+
+await recoverConsumerPel(brokerClient, STREAM_KEY, GROUP_NAME, CONSUMER_NAME, "engine");
+
 //send response back to backend via redis
 while (true) {
-    const messages = await brokerClient.xReadGroup(
-        "engine",
-        "engine-worker-1",
-        [{ key: "stream:commands", id: ">" }],
-        { BLOCK: 2000 }  //waits up to 2 seconds, then return null if no messages
-    );
-    //process messages
-    if (!messages) continue;
+    try {
+        const messages = await brokerClient.xReadGroup(
+            GROUP_NAME,
+            CONSUMER_NAME,
+            [{ key: STREAM_KEY, id: ">" }],
+            { BLOCK: 2000 }  //waits up to 2 seconds, then return null if no messages
+        );
+        if (!messages) continue;
 
-    for (const stream of messages) {
-        for (const message of stream.messages) {
-            const { correlationId, type, payload } = message.message;
-            //parse payload JSON, handle command, send response
-            if (!correlationId || !type || !payload) continue;
-            const parsedPayload = JSON.parse(payload);
+        for (const stream of messages) {
+            for (const message of stream.messages) {
+                try {
+                    const { correlationId, type, payload } = message.message;
 
-            let result: unknown;
+                    if (!correlationId || !type || !payload) {
+                        await brokerClient.xAck(STREAM_KEY, GROUP_NAME, message.id);
+                        continue;
+                    }
 
-            switch (type) {
-                case "USER_BALANCE":
-                    //call onramp handler
-                    result = await onramp(parsedPayload);
-                    break;
+                    const parsedPayload = JSON.parse(payload);
+                    let result: unknown;
 
-                case "CREATE_ORDER":
-                    //call openPosititon handler
-                    result = await openPosition(parsedPayload);
-                    break;
+                    switch (type) {
+                        case "USER_BALANCE":
+                            result = await onramp(parsedPayload);
+                            break;
 
-                case "cancel_position":
-                    //user cancellling an order
-                    result = await cancelPosition(parsedPayload);
-                    break;
+                        case "CREATE_ORDER":
+                            result = await openPosition(parsedPayload);
+                            break;
 
-                case "get_equity":
-                    result = await getEquity(parsedPayload);
-                    break;
+                        case "cancel_position":
+                            result = await cancelPosition(parsedPayload);
+                            break;
 
-                case "get_open_positions":
-                    result = await getOpenPosition(parsedPayload);
-                    break;
+                        case "get_equity":
+                            result = await getEquity(parsedPayload);
+                            break;
 
-                default:
-                    throw new Error(`Unknown command : ${type}`);
+                        case "get_open_positions":
+                            result = await getOpenPosition(parsedPayload);
+                            break;
 
+                        default:
+                            throw new Error(`Unknown command : ${type}`);
+                    }
+
+                    await responseClient.xAdd(env.responseQueue, "*", {
+                        correlationId,
+                        result: JSON.stringify(result),
+                    });
+
+                    await brokerClient.xAck(STREAM_KEY, GROUP_NAME, message.id);
+                } catch (err) {
+                    console.error(`Error processing message ${message.id}:`, err);
+
+                    try {
+                        await brokerClient.xAck(STREAM_KEY, GROUP_NAME, message.id);
+                    } catch (ackErr) {
+                        console.error(`Failed to ack ${message.id}:`, ackErr);
+                    }
+                }
             }
-
-            //sends responses back to backend and emits events to DB pollar(XADD)
-            //use responseClient.xAdd to push result back
-            await responseClient.xAdd(env.responseQueue, "*", {
-                    correlationId,
-                    result : JSON.stringify(result)
-                });
-
         }
+    } catch (err) {
+        console.error("Consumer loop error:", err);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 }

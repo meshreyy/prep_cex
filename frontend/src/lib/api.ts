@@ -162,7 +162,9 @@ export const api = {
         qty: body.quantity,
         price: body.price,
         orderType: body.orderType ?? "limit",
+        
       }),
+      
     });
   },
 

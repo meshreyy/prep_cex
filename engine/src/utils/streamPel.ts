@@ -10,6 +10,8 @@ export type StreamPelClient = {
     ): Promise<Array<{ id: string }>>;
     xAck(key: string, group: string, id: string | string[]): Promise<number>;
     xGroupDelConsumer(
+        
+        
         key: string,
         group: string,
         consumer: string,
@@ -26,6 +28,7 @@ export function isPelLimitError(error: unknown): boolean {
 }
 
 export async function clearConsumerPel(
+    
     client: StreamPelClient,
     streamKey: string,
     group: string,
@@ -77,7 +80,7 @@ export async function recoverConsumerPel(
 
         console.warn(
             `[${label}] PEL still blocked — removing consumer ${consumer} from group ${group}`,
-        );
+        ); 
         try {
             await client.xGroupDelConsumer(streamKey, group, consumer);
             console.log(
