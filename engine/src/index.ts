@@ -6,18 +6,21 @@ import { createClient } from "redis";
 import { env } from "./utils/config";
 import { hydrateEngine } from "./bootstrap/hydrate";
 import { onramp, openPosition, cancelPosition, getEquity, getOpenPosition } from "./handler/perbs.handler.js";
+import { getDepth } from "./handler/depth.handler.js";
+import { getTrades } from "./handler/trades.handler.js";
 import { recoverConsumerPel } from "./utils/streamPel";
-
+import { startSimulation } from "./workers/simulation-worker.js";
 
 
 export const brokerClient = createClient({ 
     url: env.redisUrl,
-    socket: { tls: true, rejectUnauthorized: false }
+    socket: { tls: false, reconnectStrategy: (retries) => Math.min(retries * 50, 2000) }
 });
+
 
 export const responseClient = createClient({ 
     url: env.redisUrl,
-    socket: { tls: true, rejectUnauthorized: false }
+    socket: { tls: false, reconnectStrategy: (retries) => Math.min(retries * 50, 2000) }
 });
 
 
@@ -27,8 +30,9 @@ await Promise.all([brokerClient.connect(), responseClient.connect()]);
 //call hydrateEngine to load balances
 await hydrateEngine();
 
+startSimulation(env.simulation);
 
-//consumer grp 
+//consumer grp
 try {
     await brokerClient.xGroupCreate(
 
@@ -97,6 +101,14 @@ while (true) {
 
                         case "get_open_positions":
                             result = await getOpenPosition(parsedPayload);
+                            break;
+
+                        case "get_depth":
+                            result = await getDepth(parsedPayload);
+                            break;
+
+                        case "get_trades":
+                            result = await getTrades(parsedPayload);
                             break;
 
                         default:

@@ -69,7 +69,7 @@ async function request<T>(
   } catch {
     throw new Error(
       import.meta.env.PROD && !API_BASE
-        ? "API URL not configured. Set VITE_API_URL when deploying the frontend."
+        ? "API URL not configured. Set VITE_API_URL when deploying the frontend." 
         : "Cannot reach the API. Is the backend running?",
     );
   }
@@ -108,6 +108,29 @@ export function parsePositions(
   if (Array.isArray(data)) return data;
   return [];
 }
+
+export type DepthLevel = {
+  price: number;
+  qty: number;
+};
+
+export type DepthSnapshot = {
+  market: string;
+  bids: DepthLevel[];
+  asks: DepthLevel[];
+  midPrice: number | null;
+  spread: number | null;
+  lastTradedPrice: number | null;
+};
+
+export type PublicTrade = {
+  fillId: string;
+  market: string;
+  price: number;
+  qty: number;
+  createdAt: number;
+  takerSide: "buy" | "sell";
+};
 
 export const api = {
   signup(username: string, password: string) {
@@ -175,6 +198,18 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ userId, orderId }),
       },
+    );
+  },
+
+  getDepth(market: string, levels = 20) {
+    return request<DepthSnapshot>(
+      `/api/perps/depth?market=${encodeURIComponent(market)}&levels=${levels}`,
+    );
+  },
+
+  getTrades(market: string, limit = 28) {
+    return request<{ market: string; trades: PublicTrade[] }>(
+      `/api/perps/trades?market=${encodeURIComponent(market)}&limit=${limit}`,
     );
   },
 };

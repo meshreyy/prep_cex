@@ -1,4 +1,4 @@
-import { prisma } from "@perp/shared-db";
+import {prisma} from "@perp/db"
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";

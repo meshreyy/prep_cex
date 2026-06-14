@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  binanceWsUrl,
-  parseAggTradeWs,
-  type AggTrade,
-} from "../lib/binance";
+import { api, type PublicTrade } from "../lib/api";
 
 type Props = {
-  symbol: string;
+  market: string;
   onSelectPrice?: (price: number) => void;
 };
 
@@ -16,20 +12,28 @@ function formatPrice(n: number) {
     : n.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
 
-export function RecentTrades({ symbol, onSelectPrice }: Props) {
-  const [trades, setTrades] = useState<AggTrade[]>([]);
+export function RecentTrades({ market, onSelectPrice }: Props) {
+  const [trades, setTrades] = useState<PublicTrade[]>([]);
 
   useEffect(() => {
-    const ws = new WebSocket(
-      binanceWsUrl(`${symbol.toLowerCase()}@aggTrade`),
-    );
-    ws.onmessage = (ev) => {
-      const data = JSON.parse(ev.data as string);
-      const trade = parseAggTradeWs(data);
-      setTrades((prev) => [trade, ...prev].slice(0, 28));
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const { trades: next } = await api.getTrades(market, 28);
+        if (!cancelled) setTrades(next);
+      } catch {
+        /* keep last tape on transient errors */
+      }
     };
-    return () => ws.close();
-  }, [symbol]);
+
+    void poll();
+    const id = setInterval(() => void poll(), 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [market]);
 
   return (
     <div className="recent-trades">
@@ -41,8 +45,8 @@ export function RecentTrades({ symbol, onSelectPrice }: Props) {
       <ul className="recent-trades-list">
         {trades.map((t) => (
           <li
-            key={t.id}
-            className={t.isBuyerMaker ? "sell" : "buy"}
+            key={t.fillId}
+            className={t.takerSide === "buy" ? "buy" : "sell"}
             role="button"
             tabIndex={0}
             onClick={() => onSelectPrice?.(t.price)}
@@ -53,7 +57,7 @@ export function RecentTrades({ symbol, onSelectPrice }: Props) {
             <span>{formatPrice(t.price)}</span>
             <span>{t.qty.toFixed(4)}</span>
             <span>
-              {new Date(t.time).toLocaleTimeString(undefined, {
+              {new Date(t.createdAt).toLocaleTimeString(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",

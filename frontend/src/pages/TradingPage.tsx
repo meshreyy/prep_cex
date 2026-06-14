@@ -196,7 +196,7 @@ export function TradingPage() {
           <div className="panel panel-glow orderbook-panel">
             <h3 className="panel-title">Order book</h3>
             <OrderBook
-              symbol={config.binanceSymbol}
+              market={market}
               onSelectPrice={handleBookPrice}
             />
           </div>
@@ -266,7 +266,7 @@ export function TradingPage() {
           <div className="panel panel-glow sidebar-panel trades-panel">
             <h3 className="panel-title">Recent trades</h3>
             <RecentTrades
-              symbol={config.binanceSymbol}
+              market={market}
               onSelectPrice={handleBookPrice}
             />
           </div>

@@ -8,8 +8,8 @@ import { env } from "./config";
 export const redisClient = createClient({
     url: env.redisUrl,
     socket: {
-        tls: true,
-        rejectUnauthorized: false
+        tls: false,
+        reconnectStrategy: (retries) => Math.min(retries * 50, 2000)
     }
 });
 

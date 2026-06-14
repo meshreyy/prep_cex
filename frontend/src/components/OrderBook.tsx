@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  binanceWsUrl,
-  parseDepthWs,
-  type DepthLevel,
-} from "../lib/binance";
+import { api, type DepthLevel } from "../lib/api";
 
 type Props = {
-  symbol: string;
+  market: string;
   onSelectPrice?: (price: number) => void;
 };
 
@@ -20,22 +16,31 @@ function formatQty(n: number) {
   return n >= 1 ? n.toFixed(4) : n.toFixed(6);
 }
 
-export function OrderBook({ symbol, onSelectPrice }: Props) {
+export function OrderBook({ market, onSelectPrice }: Props) {
   const [bids, setBids] = useState<DepthLevel[]>([]);
   const [asks, setAsks] = useState<DepthLevel[]>([]);
 
   useEffect(() => {
-    const ws = new WebSocket(
-      binanceWsUrl(`${symbol.toLowerCase()}@depth20@100ms`),
-    );
-    ws.onmessage = (ev) => {
-      const data = JSON.parse(ev.data as string);
-      const parsed = parseDepthWs(data);
-      setBids(parsed.bids);
-      setAsks(parsed.asks);
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const depth = await api.getDepth(market, 20);
+        if (cancelled) return;
+        setBids(depth.bids);
+        setAsks([...depth.asks].reverse());
+      } catch {
+        /* keep last snapshot on transient errors */
+      }
     };
-    return () => ws.close();
-  }, [symbol]);
+
+    void poll();
+    const id = setInterval(() => void poll(), 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [market]);
 
   const maxQty = useMemo(() => {
     const all = [...bids, ...asks].map((l) => l.qty);

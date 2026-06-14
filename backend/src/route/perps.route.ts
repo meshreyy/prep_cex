@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   cancelOrder,
   getBalance,
+  getDepth,
+  getTrades,
   getPositions,
   onramp,
   order,
@@ -9,6 +11,8 @@ import {
 
 const perpsRouter = Router();
 
+perpsRouter.get("/depth", getDepth);
+perpsRouter.get("/trades", getTrades);
 perpsRouter.get("/balance", getBalance);
 perpsRouter.get("/positions", getPositions);
 perpsRouter.post("/order", order);

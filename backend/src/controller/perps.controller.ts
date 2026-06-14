@@ -97,6 +97,42 @@ export const getPositions = async (req: Request, res: Response) => {
   }
 };
 
+export const getDepth = async (req: Request, res: Response) => {
+  try {
+    const market =
+      typeof req.query.market === "string" ? req.query.market.trim() : "";
+    const levels = Number(req.query.levels) || 20;
+    if (!market) {
+      res.status(400).json({ error: "market required" });
+      return;
+    }
+    const result = await sendToEngine("get_depth", { market, levels });
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(503).json({
+      error: err instanceof Error ? err.message : "Engine unavailable",
+    });
+  }
+};
+
+export const getTrades = async (req: Request, res: Response) => {
+  try {
+    const market =
+      typeof req.query.market === "string" ? req.query.market.trim() : "";
+    const limit = Number(req.query.limit) || 50;
+    if (!market) {
+      res.status(400).json({ error: "market required" });
+      return;
+    }
+    const result = await sendToEngine("get_trades", { market, limit });
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(503).json({
+      error: err instanceof Error ? err.message : "Engine unavailable",
+    });
+  }
+};
+
 export const cancelOrder = async (req: Request, res: Response) => {
   try {
     const { userId, orderId } = req.body;

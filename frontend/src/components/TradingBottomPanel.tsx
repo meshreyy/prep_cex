@@ -1,8 +1,5 @@
 import type { Position } from "../lib/api";
-import {
-  deriveSessionPositions,
-  type SessionOrder,
-} from "../lib/tradingSession";
+import type { SessionOrder } from "../lib/tradingSession";
 
 type Tab = "positions" | "open" | "history";
 
@@ -48,7 +45,6 @@ export function TradingBottomPanel({
       o.orderId &&
       (o.status === "open" || o.status === "partially_filled"),
   );
-  const sessionPositions = deriveSessionPositions(orders);
 
   return (
     <div className="terminal-bottom-inner">
@@ -59,10 +55,8 @@ export function TradingBottomPanel({
           onClick={() => onTabChange("positions")}
         >
           Positions
-          {(positions.length > 0 || sessionPositions.length > 0) && (
-            <span className="tab-count">
-              {positions.length || sessionPositions.length}
-            </span>
+          {positions.length > 0 && (
+            <span className="tab-count">{positions.length}</span>
           )}
         </button>
         <button
@@ -97,14 +91,14 @@ export function TradingBottomPanel({
               </tr>
             </thead>
             <tbody>
-              {positions.length === 0 && sessionPositions.length === 0 ? (
+              {positions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="table-empty">
                     No open positions. Place and fill an order to open a
                     position.
                   </td>
                 </tr>
-              ) : positions.length > 0 ? (
+              ) : (
                 positions.map((p) => (
                   <tr key={p.positionId}>
                     <td>{p.market}</td>
@@ -124,22 +118,6 @@ export function TradingBottomPanel({
                     >
                       {formatNum(p.unrealizedPnl, 2)}
                     </td>
-                  </tr>
-                ))
-              ) : (
-                sessionPositions.map((p) => (
-                  <tr key={p.key}>
-                    <td>{p.market}</td>
-                    <td
-                      className={
-                        p.side === "long" ? "cell-buy" : "cell-sell"
-                      }
-                    >
-                      {p.side}
-                    </td>
-                    <td>{formatNum(p.qty)}</td>
-                    <td>{formatNum(p.avgPrice, 2)}</td>
-                    <td>—</td>
                   </tr>
                 ))
               )}
