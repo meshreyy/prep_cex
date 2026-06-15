@@ -4,8 +4,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    ports:
-      - "3000:3000"
+    network_mode: host
     env_file:
       - ./backend/.env
     restart: unless-stopped
@@ -14,6 +13,7 @@ services:
     build:
       context: .
       dockerfile: engine/Dockerfile
+    network_mode: host
     env_file:
       - ./engine/.env
     restart: unless-stopped
