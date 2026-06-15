@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@perp/shared-db",
+      "name": "@perp/db",
       "dependencies": {
         "@prisma/client": "^5.10.0",
       },

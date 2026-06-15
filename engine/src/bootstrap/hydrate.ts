@@ -4,7 +4,7 @@
 //connects to postgres 
 
 
-import {prisma} from "@perp/shared-db";
+import {prisma} from "@perp/db";
 import { BALANCES } from "../store/perp-store";
 
 
