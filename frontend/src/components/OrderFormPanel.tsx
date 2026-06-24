@@ -23,6 +23,7 @@ type Props = {
   onLeverage: (l: number) => void;
   onUseLastPrice: () => void;
   onSubmit: (e: FormEvent) => void;
+  requiresAuth?: boolean;
 };
 
 export function OrderFormPanel({
@@ -44,6 +45,7 @@ export function OrderFormPanel({
   onLeverage,
   onUseLastPrice,
   onSubmit,
+  requiresAuth = false,
 }: Props) {
   const priceNum =
     orderType === "market" && livePrice
@@ -196,7 +198,9 @@ export function OrderFormPanel({
         >
           {loading
             ? "Submitting…"
-            : `${side === "buy" ? "Buy" : "Sell"} ${marketLabel}`}
+            : requiresAuth
+              ? "Login to trade"
+              : `${side === "buy" ? "Buy" : "Sell"} ${marketLabel}`}
         </button>
       </form>
 

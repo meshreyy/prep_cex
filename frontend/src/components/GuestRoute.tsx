@@ -11,7 +11,7 @@ export function GuestRoute({ children }: { children: React.ReactNode }) {
 
   if (isAuthenticated) {
     const dest =
-      state?.from && state.from !== ROUTES.auth ? state.from : ROUTES.dashboard;
+      state?.from && state.from !== ROUTES.auth ? state.from : ROUTES.home;
     return <Navigate to={dest} replace />;
   }
 

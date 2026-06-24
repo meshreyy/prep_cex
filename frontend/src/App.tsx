@@ -3,7 +3,6 @@ import { AuthProvider } from "./context/AuthContext";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { GuestRoute } from "./components/GuestRoute";
-import { LandingPage } from "./pages/LandingPage";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { TradingPage } from "./pages/TradingPage";
@@ -17,7 +16,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={<LandingPage />} />
+            <Route index element={<TradingPage />} />
+            <Route path="trade" element={<Navigate to={ROUTES.home} replace />} />
 
             <Route
               path="auth"
@@ -38,14 +38,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="trade"
-              element={
-                <ProtectedRoute>
-                  <TradingPage />
                 </ProtectedRoute>
               }
             />

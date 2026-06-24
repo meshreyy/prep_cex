@@ -14,12 +14,12 @@ export function NotFoundPage() {
           Home
         </Link>
         {isAuthenticated ? (
-          <Link to={ROUTES.trade} className="btn btn-primary">
-            Trading terminal
+          <Link to={ROUTES.home} className="btn btn-primary">
+            Markets
           </Link>
         ) : (
-          <Link to={ROUTES.auth} className="btn btn-primary">
-            Sign in
+          <Link to={`${ROUTES.auth}?mode=signup`} className="btn btn-primary">
+            Register
           </Link>
         )}
       </div>

@@ -67,7 +67,7 @@ export function DashboardPage() {
           <h1>Portfolio</h1>
           <p className="muted">Welcome back, {user?.username}</p>
         </div>
-        <Link to={ROUTES.trade} className="btn btn-primary">
+        <Link to={ROUTES.home} className="btn btn-primary">
           Open terminal →
         </Link>
       </header>

@@ -13,7 +13,7 @@ export function DashboardActivity() {
     <article className="panel panel-glow">
       <div className="page-header" style={{ marginBottom: "0.75rem" }}>
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Recent activity</h2>
-        <Link to={ROUTES.trade} className="btn btn-ghost btn-sm">
+        <Link to={ROUTES.home} className="btn btn-ghost btn-sm">
           Trade →
         </Link>
       </div>

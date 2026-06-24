@@ -52,7 +52,7 @@ export function AuthPage() {
         const dest =
           from && from !== ROUTES.auth && from.startsWith("/")
             ? from
-            : ROUTES.dashboard;
+            : ROUTES.home;
         navigate(dest, { replace: true });
       }
     } catch (err) {
@@ -67,8 +67,8 @@ export function AuthPage() {
       <h1>{mode === "signup" ? "Create account" : "Welcome back"}</h1>
       <p className="muted">
         {mode === "signup"
-          ? "Sign up to start trading perpetual futures."
-          : "Sign in to access your dashboard and trading terminal."}
+          ? "Create an account to place orders and manage your portfolio."
+          : "Sign in to trade, deposit funds, and view your positions."}
       </p>
 
       <form className="stack-form" onSubmit={handleSubmit}>
@@ -129,7 +129,7 @@ export function AuthPage() {
       </p>
 
       <Link to={ROUTES.home} className="back-link">
-        ← Back to home
+        ← Back to markets
       </Link>
     </section>
   );

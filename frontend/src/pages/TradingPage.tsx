@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, parsePositions, type OrderType, type Position } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { ROUTES } from "../lib/routes";
 import {
   getMarket,
   CHART_INTERVALS,
@@ -24,7 +26,8 @@ import { MarketInfoPanel } from "../components/MarketInfoPanel";
 type BottomTab = "positions" | "open" | "history";
 
 export function TradingPage() {
-  const { user, balance, setBalance } = useAuth();
+  const navigate = useNavigate();
+  const { user, balance, setBalance, isAuthenticated } = useAuth();
   const [market, setMarket] = useState<MarketId>("BTC-PERP");
   const [chartInterval, setChartInterval] = useState<ChartInterval>("1m");
   const [orderType, setOrderType] = useState<OrderType>("limit");
@@ -109,7 +112,10 @@ export function TradingPage() {
 
   async function handleOrder(e: FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      navigate(ROUTES.auth, { state: { from: ROUTES.home } });
+      return;
+    }
 
     const orderPrice =
       orderType === "market" && livePrice ? livePrice : Number(price);
@@ -262,6 +268,7 @@ export function TradingPage() {
             onLeverage={setLeverage}
             onUseLastPrice={useMarketPrice}
             onSubmit={handleOrder}
+            requiresAuth={!isAuthenticated}
           />
           <div className="panel panel-glow sidebar-panel trades-panel">
             <h3 className="panel-title">Recent trades</h3>

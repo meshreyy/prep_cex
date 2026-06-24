@@ -10,10 +10,32 @@ function formatUsd(n: number) {
 }
 
 export function AccountPanel() {
-  const { user, balance } = useAuth();
+  const { user, balance, isAuthenticated } = useAuth();
   const available = balance?.available ?? 0;
   const locked = balance?.locked ?? 0;
   const total = available + locked;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="account-panel account-panel--guest">
+        <span className="panel-title">Account</span>
+        <p className="account-guest-copy">
+          Browse markets live. Sign in to place orders and manage your portfolio.
+        </p>
+        <div className="account-guest-actions">
+          <Link to={ROUTES.auth} className="btn btn-secondary btn-sm btn-block">
+            Login
+          </Link>
+          <Link
+            to={`${ROUTES.auth}?mode=signup`}
+            className="btn btn-primary btn-sm btn-block"
+          >
+            Register
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="account-panel">
@@ -44,7 +66,7 @@ export function AccountPanel() {
         </p>
       )}
       {!balance && (
-        <p className="account-hint">Onramp on dashboard to trade with margin.</p>
+        <p className="account-hint">Deposit on portfolio to trade with margin.</p>
       )}
     </div>
   );

@@ -7,7 +7,9 @@ export function Layout() {
   const { isAuthenticated, user, logout, balance } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const isTrade = location.pathname === ROUTES.trade;
+  const isTrade =
+    location.pathname === ROUTES.home ||
+    location.pathname === ROUTES.trade;
 
   return (
     <div className="app-shell">
@@ -20,13 +22,22 @@ export function Layout() {
         </Link>
 
         <nav className="app-nav">
+          <NavLink to={ROUTES.home} end>
+            Markets
+          </NavLink>
+          {isAuthenticated && (
+            <NavLink to={ROUTES.dashboard}>Portfolio</NavLink>
+          )}
+
           {isAuthenticated ? (
             <>
-              <NavLink to={ROUTES.dashboard}>Dashboard</NavLink>
-              <NavLink to={ROUTES.trade}>Trade</NavLink>
               {balance && (
-                <span className="nav-balance" title="Available balance">
-                  ${(balance.available + balance.locked).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                <span className="nav-balance" title="Total equity">
+                  $
+                  {(balance.available + balance.locked).toLocaleString(
+                    undefined,
+                    { maximumFractionDigits: 0 },
+                  )}
                 </span>
               )}
               <span className="nav-user">{user?.username}</span>
@@ -42,15 +53,17 @@ export function Layout() {
               </button>
             </>
           ) : (
-            <>
-              <NavLink to={ROUTES.auth}>Sign in</NavLink>
+            <div className="nav-auth-actions">
+              <Link to={ROUTES.auth} className="nav-auth-login">
+                Login
+              </Link>
               <Link
                 to={`${ROUTES.auth}?mode=signup`}
                 className="btn btn-primary btn-sm"
               >
-                Sign up
+                Register
               </Link>
-            </>
+            </div>
           )}
         </nav>
       </header>
