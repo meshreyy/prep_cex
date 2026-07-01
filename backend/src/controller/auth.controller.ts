@@ -3,6 +3,9 @@ import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { env } from "../utils/config";
+import { sendToEngine } from "../utils/engine_client";
+
+const GUEST_STARTING_BALANCE = 1000;
 
 
 
@@ -49,4 +52,24 @@ export const signin = async(req : Request, res : Response) => {
     res.status(200).json({token, user : {id: existingUser.userId, username}});
 
 }
+
+export const guest = async (_req: Request, res: Response) => {
+    try {
+        const guestId = `guest-${crypto.randomUUID()}`;
+        const balance = await sendToEngine("USER_BALANCE", {
+            userId: guestId,
+            amount: GUEST_STARTING_BALANCE,
+        });
+
+        res.status(200).json({
+            token: "guest",
+            user: { id: guestId, username: "Guest" },
+            balance,
+        });
+    } catch (err) {
+        res.status(503).json({
+            error: err instanceof Error ? err.message : "Engine unavailable",
+        });
+    }
+};
 

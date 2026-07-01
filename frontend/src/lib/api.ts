@@ -147,6 +147,18 @@ export const api = {
     });
   },
 
+  async guest() {
+    const data = await request<{
+      token: string;
+      user: AuthUser;
+      balance: unknown;
+    }>("/api/auth/guest", { method: "POST" });
+    return {
+      ...data,
+      balance: normalizeBalance(data.balance),
+    };
+  },
+
   async getBalance(userId: string) {
     const data = await request<unknown>(
       `/api/perps/balance?userId=${encodeURIComponent(userId)}`,

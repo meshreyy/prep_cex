@@ -13,16 +13,20 @@ import { BALANCES } from "../store/perp-store";
 
 //findMany() - returns an array
 export async function hydrateEngine() {
-    const balances = await prisma.balance.findMany();
+    try {
+        const balances = await prisma.balance.findMany();
 
-    //loop through the results and set them in BALANCES map
-    for (const record of balances) {
-        BALANCES.set(record.userId, { available : record.available, locked : record.locked});
-        
+        for (const record of balances) {
+            BALANCES.set(record.userId, {
+                available: record.available,
+                locked: record.locked,
+            });
+        }
+
+        console.log(`Loaded ${balances.length} balances`);
+    } catch (err) {
+        console.warn("Balance hydrate skipped (database unavailable):", err);
     }
-
-    console.log(`Loaded ${balances.length} balances`);
-
 }
 
 

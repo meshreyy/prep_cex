@@ -14,6 +14,7 @@ type StoredAuth = {
   token: string;
   user: AuthUser;
   balance?: Balance;
+  isGuest?: boolean;
 };
 
 type AuthContextValue = {
@@ -21,7 +22,9 @@ type AuthContextValue = {
   token: string | null;
   balance: Balance | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (token: string, user: AuthUser) => void;
+  loginGuest: (user: AuthUser, balance: Balance) => void;
   logout: () => void;
   setBalance: (balance: Balance) => void;
 };
@@ -61,6 +64,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const loginGuest = useCallback((user: AuthUser, balance: Balance) => {
+    const next: StoredAuth = {
+      token: "guest",
+      user,
+      balance,
+      isGuest: true,
+    };
+    writeStoredAuth(next);
+    setStored(next);
+  }, []);
+
   const logout = useCallback(() => {
     writeStoredAuth(null);
     setStored(null);
@@ -81,11 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: stored?.token ?? null,
       balance: stored?.balance ?? null,
       isAuthenticated: Boolean(stored?.token),
+      isGuest: Boolean(stored?.isGuest),
       login,
+      loginGuest,
       logout,
       setBalance,
     }),
-    [stored, login, logout, setBalance],
+    [stored, login, loginGuest, logout, setBalance],
   );
 
   return (

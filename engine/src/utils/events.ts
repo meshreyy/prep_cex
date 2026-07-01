@@ -1,19 +1,16 @@
-//this emits events to redis for the db pollar
-
-import { responseClient } from "..";
 import { env } from "./config.js";
+import { getResponseClient } from "../transport/redis";
 
 export async function emitEvent(
-    type : string,
-    payload : Record<string, unknown>
-): Promise <void> {
-    await responseClient.xAdd(
-        env.eventsQueue,
-        "*",
-        {
-            type,
-            payload : JSON.stringify(payload),
-            createdAt : String(Date.now())
-        }
-    );
+    type: string,
+    payload: Record<string, unknown>,
+): Promise<void> {
+    if (env.transport === "http") return;
+
+    const responseClient = getResponseClient();
+    await responseClient.xAdd(env.eventsQueue, "*", {
+        type,
+        payload: JSON.stringify(payload),
+        createdAt: String(Date.now()),
+    });
 }

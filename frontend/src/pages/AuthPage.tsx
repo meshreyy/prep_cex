@@ -19,7 +19,8 @@ export function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [guestLoading, setGuestLoading] = useState(false);
+  const { login, loginGuest } = useAuth();
 
   useEffect(() => {
     setMode(modeParam === "signup" ? "signup" : "signin");
@@ -59,6 +60,26 @@ export function AuthPage() {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGuest() {
+    setError(null);
+    setGuestLoading(true);
+    try {
+      const { user, balance } = await api.guest();
+      loginGuest(user, balance);
+      const state = location.state as LocationState | null;
+      const from = state?.from;
+      const dest =
+        from && from !== ROUTES.auth && from.startsWith("/")
+          ? from
+          : ROUTES.home;
+      navigate(dest, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start guest session");
+    } finally {
+      setGuestLoading(false);
     }
   }
 
@@ -109,6 +130,19 @@ export function AuthPage() {
               : "Sign in"}
         </button>
       </form>
+
+      <div className="auth-guest-divider">
+        <span>or</span>
+      </div>
+
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        disabled={guestLoading || loading}
+        onClick={() => void handleGuest()}
+      >
+        {guestLoading ? "Starting guest session…" : "Continue as guest — $1,000 demo balance"}
+      </button>
 
       <p className="auth-switch">
         {mode === "signup" ? (

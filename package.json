@@ -4,6 +4,9 @@
   "type": "module",
   "private": true,
   "workspaces": ["shared/*", "backend", "engine"],
+  "scripts": {
+    "redis": "docker compose up -d redis"
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "latest",

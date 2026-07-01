@@ -4,7 +4,7 @@
 //3. define the routes
 
 import { Router } from "express";
-import { signin, signup } from "../controller/auth.controller";
+import { signin, signup, guest } from "../controller/auth.controller";
 
 
 
@@ -14,6 +14,7 @@ const router = Router();
 
 router.post("/signin", signin);
 router.post("/signup", signup);
+router.post("/guest", guest);
 
 
 export default router;

@@ -16,7 +16,9 @@ const simulationSchema = z.object({
 export type SimulationConfig = z.infer<typeof simulationSchema>;
 
 const envSchema = z.object({
-    redisUrl: z.string(),
+    transport: z.enum(["redis", "http"]),
+    httpPort: z.number().int().positive(),
+    redisUrl: z.string().optional(),
     incomingQueue: z.string(),
     responseQueue: z.string(),
     eventsQueue: z.string(),
@@ -52,9 +54,12 @@ function parseSimulation(): SimulationConfig {
 }
 
 export const env = envSchema.parse({
-    redisUrl: process.env.REDIS_URL ?? "",
-    incomingQueue: process.env.INCOMING_QUEUE ?? "",
-    responseQueue: process.env.RESPONSE_QUEUE ?? "",
-    eventsQueue: process.env.EVENTS_QUEUE ?? "",
+    transport:
+        process.env.ENGINE_TRANSPORT === "redis" ? "redis" : "http",
+    httpPort: Number(process.env.ENGINE_HTTP_PORT) || 3001,
+    redisUrl: process.env.REDIS_URL || undefined,
+    incomingQueue: process.env.INCOMING_QUEUE ?? "stream:commands",
+    responseQueue: process.env.RESPONSE_QUEUE ?? "stream:responses",
+    eventsQueue: process.env.EVENTS_QUEUE ?? "stream:events",
     simulation: parseSimulation(),
 });

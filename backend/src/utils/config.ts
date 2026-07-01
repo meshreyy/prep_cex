@@ -2,7 +2,9 @@ import { z } from "zod";
 
 const envSchema = z.object({
   databaseUrl: z.string(),
-  redisUrl: z.string(),
+  engineTransport: z.enum(["redis", "http"]),
+  engineHttpUrl: z.string().url(),
+  redisUrl: z.string().optional(),
   jwtSecret: z.string(),
   incomingQueue: z.string(),
   responseQueue: z.string(),
@@ -18,12 +20,17 @@ function parseCorsOrigins(): string[] {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+const engineTransport =
+  process.env.ENGINE_TRANSPORT === "redis" ? "redis" : "http";
+
 const rawEnv = {
   databaseUrl: process.env.DATABASE_URL ?? "",
-  redisUrl: process.env.REDIS_URL ?? "",
+  engineTransport,
+  engineHttpUrl: process.env.ENGINE_HTTP_URL ?? "http://localhost:3001",
+  redisUrl: process.env.REDIS_URL || undefined,
   jwtSecret: process.env.JWT_SECRET ?? "",
-  incomingQueue: process.env.INCOMING_QUEUE ?? "",
-  responseQueue: process.env.RESPONSE_QUEUE ?? "",
+  incomingQueue: process.env.INCOMING_QUEUE ?? "stream:commands",
+  responseQueue: process.env.RESPONSE_QUEUE ?? "stream:responses",
   port: Number(process.env.PORT) || 3000,
   corsOrigins: parseCorsOrigins(),
 };

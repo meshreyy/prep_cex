@@ -1,8 +1,11 @@
 import { BALANCES, ORDERS, POSITIONS } from "../store/perp-store";
 import { OrderbookManager } from "../orderbook";
 import { recordFills } from "../store/trade-store";
+import { applyFillToPositions } from "../store/positions";
 import { emitEvent } from "../utils/events";
 import type { Order, OrderSide, OrderType } from "../store/perp-store";
+
+const LEVERAGE = 10;
 
 export const onramp = async (payload: Record<string, unknown>) => {
     const userId = payload.userId as string;
@@ -30,9 +33,13 @@ export const openPosition = async (payload: Record<string, unknown>) => {
     const price = payload.price as number;
     const orderType = payload.orderType as OrderType;
 
-    const margin = (qty * price) / 10;
-    const userBalance = BALANCES.get(userId);
-    if (!userBalance || userBalance.available < margin) {
+    if (!BALANCES.has(userId)) {
+        BALANCES.set(userId, { available: 0, locked: 0 });
+    }
+
+    const margin = (qty * price) / LEVERAGE;
+    const userBalance = BALANCES.get(userId)!;
+    if (userBalance.available < margin) {
         return { ok: false, error: "Insufficient Balance" };
     }
 
@@ -93,38 +100,50 @@ export const openPosition = async (payload: Record<string, unknown>) => {
         margin,
     });
 
-    if (fills.length > 0) recordFills(fills);
-
-    for (const fill of fills) {
-        await emitEvent("FILL_CREATED", {
-            fillId: fill.fillId,
-            orderId: order.orderId,
-            maker: fill.maker,
-            taker: fill.taker,
-            market: fill.market,
-            qty: fill.qty,
-            price: fill.price,
-            side: fill.side,
-            long: fill.long,
-            short: fill.short,
-            createdAt: fill.createdAt,
-        });
+    if (fills.length > 0) {
+        recordFills(fills);
+        for (const fill of fills) {
+            await applyFillToPositions(fill);
+            await emitEvent("FILL_CREATED", {
+                fillId: fill.fillId,
+                orderId: order.orderId,
+                maker: fill.maker,
+                taker: fill.taker,
+                market: fill.market,
+                qty: fill.qty,
+                price: fill.price,
+                side: fill.side,
+                long: fill.long,
+                short: fill.short,
+                createdAt: fill.createdAt,
+            });
+        }
     }
 
     if (filledQty < qty && orderType === "limit") {
+        const remainingQty = qty - filledQty;
         book.addOrder({
             orderId: order.orderId,
             userId,
             side,
             market,
             price,
-            qty: qty - filledQty,
-            margin: (margin * (qty - filledQty)) / qty,
+            qty: remainingQty,
+            margin: (margin * remainingQty) / qty,
             createdAt: Date.now(),
         });
+    } else if (filledQty < qty && orderType === "market") {
+        const unfilledMargin = (margin * (qty - filledQty)) / qty;
+        userBalance.available += unfilledMargin;
+        userBalance.locked -= unfilledMargin;
     }
 
-    return order;
+    await emitEvent("BALANCE_UPDATED", {
+        userId,
+        balance: BALANCES.get(userId),
+    });
+
+    return { ok: true, ...order };
 };
 
 export const getEquity = async (payload: Record<string, unknown>) => {
@@ -137,7 +156,7 @@ export const getEquity = async (payload: Record<string, unknown>) => {
 export const getOpenPosition = async (payload: Record<string, unknown>) => {
     const userId = payload.userId as string;
     const userPos = POSITIONS.get(userId);
-    if (!userPos) return { existingPos: "No open positions" };
+    if (!userPos?.length) return [];
     return userPos.filter((p) => p.positionStatus === "open");
 };
 
@@ -177,6 +196,11 @@ export const cancelPosition = async (payload: Record<string, unknown>) => {
         status: order.status,
         market: order.market,
         userId,
+    });
+
+    await emitEvent("BALANCE_UPDATED", {
+        userId,
+        balance: BALANCES.get(userId),
     });
 
     return { orderId, status: "cancelled" };
